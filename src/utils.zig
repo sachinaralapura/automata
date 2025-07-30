@@ -2,12 +2,12 @@ const std = @import("std");
 const testing = std.testing;
 const ArrayList = std.ArrayList(u8);
 const Allocator = std.mem.Allocator;
-var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
 
 pub fn RuleSet(ruleString: []const u8) type {
     return struct {
         const Self = @This();
         ruleStringBin: [8]u8,
+
         pub fn init() !Self {
             const temp = try decToBin(ruleString);
             std.debug.print("{s}\n", .{temp});
@@ -30,20 +30,18 @@ pub fn RuleSet(ruleString: []const u8) type {
         }
 
         pub fn format(self: *const Self, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-            try writer.writeAll("Deque(");
-            try writer.writeAll(") { .buf = [");
-
-            var it = self.iterator();
-            if (it.next()) |val| try writer.print("{any}", .{val.*});
-            while (it.next()) |val| try writer.print(", {any}", .{val.*});
-
-            try writer.writeAll("], .head = ");
-            try std.fmt.format(writer, "{}", .{self.head});
-            try writer.writeAll(", .tail = ");
-            try std.fmt.format(writer, "{}", .{self.tail});
-            try writer.writeAll(", .len = ");
-            try std.fmt.format(writer, "{}", .{self.len()});
-            try writer.writeAll(" }");
+            try writer.writeAll("-----------------------------\n");
+            try writer.writeAll("⏐ c0 ⏐ c1 ⏐ c2 ⏐ next state ⏐\n");
+            try writer.writeAll("-----------------------------\n");
+            for (0..8) |it| {
+                const i = 7 - it;
+                const c0: u8 = @intFromBool(i & 1 != 0);
+                const c1: u8 = @intFromBool(i & 2 != 0);
+                const c2: u8 = @intFromBool(i & 4 != 0);
+                const next_state = try self.nextState(c2, c1, c0);
+                try std.fmt.format(writer, "⏐ {d}  ⏐ {d}  ⏐ {d}  ⏐     {c}      ⏐\n", .{ c2, c1, c0, next_state });
+            }
+            try writer.writeAll("-----------------------------\n");
         }
     };
 }

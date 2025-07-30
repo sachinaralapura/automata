@@ -7,7 +7,8 @@ const r: u8 = 1;
 const k: u8 = 2;
 
 pub fn main() anyerror!void {
-    const ruleSet = try utils.RuleSet("150").init();
+    const ruleSet = try utils.RuleSet("78").init();
     const res = try ruleSet.nextState(0, 0, 0);
-    std.debug.print("{c}", .{res});
+    std.debug.print("{c}\n", .{res});
+    std.debug.print("{}", .{ruleSet});
 }
