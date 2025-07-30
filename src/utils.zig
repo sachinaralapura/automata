@@ -2,13 +2,14 @@ const std = @import("std");
 const testing = std.testing;
 const ArrayList = std.ArrayList(u8);
 const Allocator = std.mem.Allocator;
+const rl = @import("raylib");
 
-pub fn RuleSet(ruleString: []const u8) type {
+pub fn RuleSet() type {
     return struct {
         const Self = @This();
         ruleStringBin: [8]u8,
 
-        pub fn init() !Self {
+        pub fn init(ruleString: []const u8) !Self {
             const temp = try decToBin(ruleString);
             std.debug.print("{s}\n", .{temp});
             return Self{
@@ -26,7 +27,7 @@ pub fn RuleSet(ruleString: []const u8) type {
         pub fn nextState(self: Self, c0: u8, c1: u8, c2: u8) !u8 {
             if (c0 > 1 or c1 > 1 or c2 > 1) return error.InvalidInput;
             const index = self.combineBits(c0 != 0, c1 != 0, c2 != 0);
-            return self.ruleStringBin[self.ruleStringBin.len - index - 1];
+            return self.ruleStringBin[self.ruleStringBin.len - index - 1] - '0';
         }
 
         pub fn format(self: *const Self, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
