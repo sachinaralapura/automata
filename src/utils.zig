@@ -40,7 +40,7 @@ pub fn RuleSet() type {
                 const c1: u8 = @intFromBool(i & 2 != 0);
                 const c2: u8 = @intFromBool(i & 4 != 0);
                 const next_state = try self.nextState(c2, c1, c0);
-                try std.fmt.format(writer, "⏐ {d}  ⏐ {d}  ⏐ {d}  ⏐     {c}      ⏐\n", .{ c2, c1, c0, next_state });
+                try std.fmt.format(writer, "⏐ {d}  ⏐ {d}  ⏐ {d}  ⏐     {d}      ⏐\n", .{ c2, c1, c0, next_state });
             }
             try writer.writeAll("-----------------------------\n");
         }
@@ -99,7 +99,7 @@ test "Rule string convertion from decimal to binary" {
 test "combineBits logic" {
     // c0 c1 c2 -> Decimal
     // 0  0  0 -> 0
-    const ruleSet = try RuleSet("64").init();
+    const ruleSet = try RuleSet().init("64");
     try testing.expect(ruleSet.combineBits(false, false, false) == 0);
     // 0  0  1 -> 1
     try testing.expect(ruleSet.combineBits(false, false, true) == 1);

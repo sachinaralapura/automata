@@ -4,13 +4,17 @@ const rl = @import("raylib");
 pub const TARGET_FPS: i32 = 120;
 pub const SCREEN_WIDTH: i32 = 1920;
 pub const SCREEN_HEIGHT: i32 = 1080;
-pub const SCREEN_COLOR: rl.Color = .init(0, 0, 0, 210);
+pub const SCREEN_COLOR: rl.Color = .init(0, 0, 0, 255);
 pub const TITLE: [:0]const u8 = "Automata";
 
 // cell
-pub const CELL_SIZE: u32 = 10;
-pub const CELL_COLOR: rl.Color = .init(100, 100, 100, 100);
+pub const CELL_SIZE: u32 = 5;
+pub const CELL_GAP: u32 = 1;
+pub const CELL_COLOR: rl.Color = rl.Color.init(0, 247, 66, 255);
 
 // grid
-pub const GRID_WIDTH: u32 = 500;
-pub const GRID_HEIGHT: u32 = 800;
+pub const GRID_ROWS: u32 = 250;
+pub const GRID_COLS: u32 = 400;
+
+// delay
+pub const DELAY: u64 = 1_000_0000;
