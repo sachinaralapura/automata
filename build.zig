@@ -24,6 +24,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const zigcli_dep = b.dependency("cli", .{ .target = target });
+    const zigcli_mod = zigcli_dep.module("cli");
+
     const raylib = raylib_dep.module("raylib"); // main raylib module
     const raygui = raylib_dep.module("raygui"); // raygui module
     const raylib_artifact = raylib_dep.artifact("raylib"); // raylib C library
@@ -48,9 +51,9 @@ pub fn build(b: *std.Build) void {
     // Link the executable against 'raylib'
     // This tells the linker to include the code from raylib in my-app
     exe.linkLibrary(raylib_artifact);
+    exe.root_module.addImport("cli", zigcli_mod);
     exe.root_module.addImport("raylib", raylib);
     exe.root_module.addImport("raygui", raygui);
-
     // ==== ADD THESE LINES TO LINK SYSTEM LIBRARIES ====
     exe.linkSystemLibrary("GL"); // For libGL.so / libGLX.so
     exe.linkSystemLibrary("X11");

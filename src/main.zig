@@ -1,5 +1,6 @@
 const std = @import("std");
 const rand = std.crypto.random;
+const cli = @import("cli");
 
 const rl = @import("raylib");
 const utils = @import("utils.zig");
@@ -13,12 +14,79 @@ const RuleSet = utils.RuleSet();
 var w: f32 = CONFIG.SCREEN_WIDTH;
 var h: f32 = CONFIG.SCREEN_HEIGHT;
 
+const Token = enum { hypen, option, value };
+
+var config = struct {
+    rule: []const u8 = CONFIG.RULE_STRING,
+    random_ini: bool = false,
+    randon_rule: bool = true,
+}{};
+
+const Automata = struct {
+    allocator: Allocator,
+    gridRows: u32,
+    gridCols: u32,
+    ruleSet: ?RuleSet,
+    grid: ?Grid,
+    currentBuffer: ?ArrayList,
+    nextBuffer: ?ArrayList,
+    const Self = @This();
+
+    pub fn init(allocator: Allocator, rows: u32, cols: u32) Self {
+        return Self{ .gridRows = rows, .gridCols = cols, .allocator = allocator };
+    }
+
+    pub fn deinit(self: Self) !void {
+        self.grid.?.deinit();
+        self.currentBuffer.?.deinit();
+        self.nextBuffer.?.deinit();
+    }
+
+    pub fn initCurrentBuffer() !void {}
+
+    pub fn initNextBuffer() !void {}
+
+    pub fn initGrid() !void {}
+
+    pub fn ready(self: *Self) bool {
+        if (self.ruleSet != null and self.grid != null and self.currentBuffer != null and self.nextBuffer != null) return true;
+        return false;
+    }
+};
+
 pub fn main() anyerror!void {
+    var args = std.process.args();
+    _ = args.next();
+
+    while (args.next()) |arg| {
+        std.debug.print("{s}\n", .{arg});
+    }
+
+    // meta programming
+    // inline for (std.meta.fields(@TypeOf(config))) |field| {
+    //     std.debug.print("{s} : ", .{field.name});
+    //     std.debug.print("{}\n", .{field.type});
+    // }
+}
+
+fn parseArgument(argument: []const u8) ![]const u8 {
+    var option: []const u8 = undefined;
+    var value  = "";
+    for (argument) |char| {
+        switch (char) {
+            '-' => {},
+        }
+    }
+}
+
+fn run_automata() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
     const allocator = gpa.allocator();
+    var ruleSet: RuleSet = undefined;
+    if (config.randon_rule) {
+        ruleSet = try utils.RuleSet().initRule(randomRule());
+    } else ruleSet = try utils.RuleSet().init(config.rule);
 
-    const ruleSet = try utils.RuleSet().init("99");
-    std.debug.print("{}", .{ruleSet});
     //--------------------------------------------------------------------------------------
 
     rl.setConfigFlags(.{ .window_resizable = true, .window_transparent = true });
@@ -32,17 +100,20 @@ pub fn main() anyerror!void {
     defer grid.deinit();
 
     var current_buffer = try ArrayList.initCapacity(allocator, CONFIG.GRID_COLS);
-    // try seedInitalBuffer(&current_buffer); // populate current Buffer;
-    // current_buffer.expandToCapacity();
-    try seedIntialBUfferToZero(&current_buffer);
-    current_buffer.items[CONFIG.GRID_COLS / 2] = 1;
+    if (config.random_ini) {
+        try seedInitalBuffer(&current_buffer);
+    } else {
+        try seedIntialBUfferToZero(&current_buffer);
+        current_buffer.items[CONFIG.GRID_COLS / 2] = 1;
+    }
+    try grid.appendRow(current_buffer.items, 0);
     defer current_buffer.deinit();
 
     var next_buffer = try ArrayList.initCapacity(allocator, CONFIG.GRID_COLS);
     next_buffer.expandToCapacity(); // expand the capacity
     defer next_buffer.deinit();
 
-    var row: usize = 0;
+    var row: usize = 1;
     // Main game loop
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
         // Update
@@ -69,6 +140,10 @@ fn updateScreenDimension() void {
         w = @floatFromInt(rl.getScreenWidth());
         h = @floatFromInt(rl.getScreenHeight());
     }
+}
+
+fn randomRule() u8 {
+    return rand.int(u8);
 }
 
 fn screenCenter() rl.Vector2 {

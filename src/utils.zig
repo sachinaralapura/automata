@@ -10,10 +10,26 @@ pub fn RuleSet() type {
         ruleStringBin: [8]u8,
 
         pub fn init(ruleString: []const u8) !Self {
-            const temp = try decToBin(ruleString);
-            std.debug.print("{s}\n", .{temp});
             return Self{
                 .ruleStringBin = try decToBin(ruleString),
+            };
+        }
+
+        pub fn initRule(rule: u8) !Self {
+            var temp: [8]u8 = undefined;
+            const range: u8 = 8;
+            for (0..range) |i| {
+                const one: usize = 1;
+                const mask = one << @intCast(range - i - 1);
+                const bit = rule & mask;
+                if (bit != 0) {
+                    temp[i] = '1';
+                } else {
+                    temp[i] = '0';
+                }
+            }
+            return Self{
+                .ruleStringBin = temp,
             };
         }
 
@@ -47,7 +63,7 @@ pub fn RuleSet() type {
     };
 }
 
-// convert "xxx" in decimal to "xxxxxxxx" in binary
+/// convert "xxx" in decimal to "xxxxxxxx" in binary
 pub fn decToBin(input: []const u8) ![8]u8 {
     const range: usize = 8;
     const n = input.len;
@@ -56,6 +72,9 @@ pub fn decToBin(input: []const u8) ![8]u8 {
         const parse_result = std.fmt.parseInt(u16, input, 10) catch return error.ParseError;
         break :blk parse_result;
     };
+    if (num > 255) {
+        return error.InvalidRuleString;
+    }
     var temp: [8]u8 = undefined;
     for (0..range) |i| {
         const one: usize = 1;

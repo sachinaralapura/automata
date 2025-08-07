@@ -18,3 +18,5 @@ pub const GRID_COLS: u32 = 400;
 
 // delay
 pub const DELAY: u64 = 1_000_0000;
+
+pub const RULE_STRING = "150";

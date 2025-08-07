@@ -1,6 +1,7 @@
 const std = @import("std");
 const stdout = std.io.getStdOut().writer();
 const Allocator = std.mem.Allocator;
+
 var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
 
 pub fn Grid(comptime T: type) type {
@@ -44,6 +45,7 @@ pub fn Grid(comptime T: type) type {
             }
             self.data[row * self.cols + col] = value;
         }
+
         pub fn appendRow(self: *Self, slice: []T, row: usize) !void {
             if (slice.len != self.cols) {
                 return error.InvalidLength;
@@ -61,7 +63,7 @@ pub fn Grid(comptime T: type) type {
             // in case of error deinit buffer
             errdefer buffer.deinit();
             // Add matrix dimensions header
-            try std.fmt.format(buffer.writer(), "Matrix ({d}x{d}) of type {s}:\n", .{ self.rows, self.cols, @typeName(T) });
+            try std.fmt.format(buffer.writer(), "Grid ({d}x{d}) of type {s}:\n", .{ self.rows, self.cols, @typeName(T) });
             for (0..self.rows) |r| {
                 for (0..self.cols) |c| {
                     const value = try self.get(r, c);
@@ -74,7 +76,7 @@ pub fn Grid(comptime T: type) type {
         }
 
         pub fn format(self: *const Self, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-            try std.fmt.format(writer, "Matrix ({d}x{d}) of type {s}:\n", .{ self.rows, self.cols, @typeName(T) });
+            try std.fmt.format(writer, "Grid ({d}x{d}) of type {s}:\n", .{ self.rows, self.cols, @typeName(T) });
             for (0..self.rows) |r| {
                 for (0..self.cols) |c| {
                     const value = try self.get(r, c);
