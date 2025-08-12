@@ -14,7 +14,7 @@ pub const CELL_COLOR: rl.Color = rl.Color.init(0, 247, 66, 255);
 
 // grid
 pub const GRID_ROWS: u32 = 250;
-pub const GRID_COLS: u32 = 400;
+pub const GRID_COLS: u32 = 390;
 
 // delay
 pub const DELAY: u64 = 1_000_0000;

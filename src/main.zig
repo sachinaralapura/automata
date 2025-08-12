@@ -1,12 +1,13 @@
 const std = @import("std");
 const rand = std.crypto.random;
-const cli = @import("cli");
+const cli = @import("arg.zig");
+const Options = @import("arg.zig").Options;
 
 const rl = @import("raylib");
 const utils = @import("utils.zig");
 const CONFIG = @import("config.zig");
 const Grid = @import("Grid.zig").Grid(u8);
-
+const Automata = @import("automata.zig").Automata;
 const ArrayList = std.ArrayList(u8);
 const Allocator = std.mem.Allocator;
 const RuleSet = utils.RuleSet();
@@ -14,105 +15,39 @@ const RuleSet = utils.RuleSet();
 var w: f32 = CONFIG.SCREEN_WIDTH;
 var h: f32 = CONFIG.SCREEN_HEIGHT;
 
-const Token = enum { hypen, option, value };
-
 var config = struct {
     rule: []const u8 = CONFIG.RULE_STRING,
     random_ini: bool = false,
     randon_rule: bool = true,
-}{};
-
-const Automata = struct {
-    allocator: Allocator,
-    gridRows: u32,
-    gridCols: u32,
-    ruleSet: ?RuleSet,
-    grid: ?Grid,
-    currentBuffer: ?ArrayList,
-    nextBuffer: ?ArrayList,
-    const Self = @This();
-
-    pub fn init(allocator: Allocator, rows: u32, cols: u32) Self {
-        return Self{ .gridRows = rows, .gridCols = cols, .allocator = allocator };
-    }
-
-    pub fn deinit(self: Self) !void {
-        self.grid.?.deinit();
-        self.currentBuffer.?.deinit();
-        self.nextBuffer.?.deinit();
-    }
-
-    pub fn initCurrentBuffer() !void {}
-
-    pub fn initNextBuffer() !void {}
-
-    pub fn initGrid() !void {}
-
-    pub fn ready(self: *Self) bool {
-        if (self.ruleSet != null and self.grid != null and self.currentBuffer != null and self.nextBuffer != null) return true;
-        return false;
-    }
 };
 
-pub fn main() anyerror!void {
-    var args = std.process.args();
-    _ = args.next();
+const helpMessage =
+    \\Usage: <program_name> [options]
+    \\This tool simulates a 1D cellular automaton.
+    \\Options:
+    \\  -h, Show this help message and exit.
+    \\  -r, Use a random rule (0-255). Overrides the --rule option.
+    \\  -i, Use a random initial state for the first row.
+    \\  -t, Make the window transparent
+    \\
+    \\  --rule=<number>        Specify the rule number for the automaton, from 0 to 255.
+    \\  --cellSize=<size>     The size of each cell in pixels, from 1 to 100.
+    \\  --cellGap=<gap>       The gap between cells in pixels, from 1 to 100.
+    \\  --cellColor=<r,g,b,a> The color of the active cells, specified as four comma-separated values (0-255). For example: "23,34,45,23".
+    \\
+    \\  --gridRows=<number>    Specify the number of rows in the grid
+    \\  --gridCols=<number>    Specify the number of cols in the grid
+    \\  --screenColor=<r,g,b,a> The color of the screen
+    \\  --delay=<number>       delay between each row render in ms
+;
 
-    while (args.next()) |arg| {
-        std.debug.print("{s}\n", .{arg});
-    }
-
-    // meta programming
-    // inline for (std.meta.fields(@TypeOf(config))) |field| {
-    //     std.debug.print("{s} : ", .{field.name});
-    //     std.debug.print("{}\n", .{field.type});
-    // }
-}
-
-fn parseArgument(argument: []const u8) ![]const u8 {
-    var option: []const u8 = undefined;
-    var value  = "";
-    for (argument) |char| {
-        switch (char) {
-            '-' => {},
-        }
-    }
-}
-
-fn run_automata() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
-    const allocator = gpa.allocator();
-    var ruleSet: RuleSet = undefined;
-    if (config.randon_rule) {
-        ruleSet = try utils.RuleSet().initRule(randomRule());
-    } else ruleSet = try utils.RuleSet().init(config.rule);
-
+fn run_automata(automata: *Automata, options: Options) !void {
     //--------------------------------------------------------------------------------------
-
-    rl.setConfigFlags(.{ .window_resizable = true, .window_transparent = true });
+    rl.setConfigFlags(.{ .window_resizable = true, .window_transparent = options.t });
     rl.initWindow(CONFIG.SCREEN_WIDTH, CONFIG.SCREEN_HEIGHT, CONFIG.TITLE);
     defer rl.closeWindow(); // Close window and OpenGL context
     rl.setTargetFPS(CONFIG.TARGET_FPS); // Set our game to run at 60 frames-per-second
-
     //--------------------------------------------------------------------------------------
-
-    var grid = try Grid.init(allocator, CONFIG.GRID_ROWS, CONFIG.GRID_COLS);
-    defer grid.deinit();
-
-    var current_buffer = try ArrayList.initCapacity(allocator, CONFIG.GRID_COLS);
-    if (config.random_ini) {
-        try seedInitalBuffer(&current_buffer);
-    } else {
-        try seedIntialBUfferToZero(&current_buffer);
-        current_buffer.items[CONFIG.GRID_COLS / 2] = 1;
-    }
-    try grid.appendRow(current_buffer.items, 0);
-    defer current_buffer.deinit();
-
-    var next_buffer = try ArrayList.initCapacity(allocator, CONFIG.GRID_COLS);
-    next_buffer.expandToCapacity(); // expand the capacity
-    defer next_buffer.deinit();
-
     var row: usize = 1;
     // Main game loop
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
@@ -123,14 +58,14 @@ fn run_automata() !void {
         defer rl.endDrawing();
         // draw
         //----------------------------------------------------------------------------------
-        rl.clearBackground(CONFIG.SCREEN_COLOR);
-        if (row < CONFIG.GRID_ROWS) {
-            try updateBuffer(&ruleSet, &current_buffer, &next_buffer);
-            try grid.appendRow(next_buffer.items, row);
-            std.time.sleep(CONFIG.DELAY);
+        rl.clearBackground(options.screenColor);
+        if (row < automata.gridRows) {
+            try updateBuffer(&automata.ruleSet.?, &automata.currentBuffer.?, &(automata.nextBuffer.?));
+            try automata.grid.?.appendRow(automata.nextBuffer.?.items, row);
+            std.Thread.sleep(automata.delay);
             row += 1;
         }
-        try drawAutomata(&grid);
+        try drawAutomata(&automata.grid.?, automata.*);
         //----------------------------------------------------------------------------------
     }
 }
@@ -142,25 +77,21 @@ fn updateScreenDimension() void {
     }
 }
 
-fn randomRule() u8 {
-    return rand.int(u8);
-}
-
 fn screenCenter() rl.Vector2 {
     const x: f32 = @divTrunc(w, 2);
     const y: f32 = @divTrunc(h, 2);
     return rl.Vector2.init(x, y);
 }
 
-fn drawAutomata(grid: *const Grid) !void {
-    for (0..CONFIG.GRID_ROWS) |i| {
-        for (0..CONFIG.GRID_COLS) |j| {
+fn drawAutomata(grid: *const Grid, automata: Automata) !void {
+    for (0..grid.rows) |i| {
+        for (0..grid.cols) |j| {
             if (try grid.get(i, j) == 1) {
-                const posx: i32 = @intCast(j * CONFIG.CELL_SIZE + CONFIG.CELL_GAP);
-                const posy: i32 = @intCast(i * CONFIG.CELL_SIZE + CONFIG.CELL_GAP);
-                const width: i32 = @intCast(CONFIG.CELL_SIZE);
-                const height: i32 = @intCast(CONFIG.CELL_SIZE);
-                rl.drawRectangle(posx, posy, width, height, CONFIG.CELL_COLOR);
+                const posx: i32 = @intCast(j * automata.cellSize + automata.cellGap);
+                const posy: i32 = @intCast(i * automata.cellSize + automata.cellGap);
+                const width: i32 = @intCast(automata.cellSize);
+                const height: i32 = @intCast(automata.cellSize);
+                rl.drawRectangle(posx, posy, width, height, automata.cellColor);
             }
         }
     }
@@ -180,26 +111,24 @@ fn updateBuffer(ruleSet: *const RuleSet, cBuf: *ArrayList, nBuf: *ArrayList) !vo
     try cBuf.appendSlice(nBuf.items);
 }
 
-fn seedInitalBuffer(buffer: *ArrayList) !void {
-    const len = buffer.capacity;
-    for (0..len) |_| {
-        const random_bool: bool = rand.boolean();
-        try buffer.append(@intFromBool(random_bool));
-    }
-    buffer.items[0] = 0;
-    buffer.items[len - 1] = 0;
-}
-
-fn seedIntialBUfferToZero(buffer: *ArrayList) !void {
-    const len = buffer.capacity;
-    for (0..len) |_| {
-        try buffer.append(@intCast(0));
-    }
-}
-
 fn printRow(buffer: []u8) void {
     for (0..CONFIG.GRID_COLS) |i| {
         std.debug.print("{d} | ", .{buffer[i]});
     }
     std.debug.print("\n", .{});
+}
+
+pub fn main() anyerror!void {
+    var args = std.process.args();
+    _ = args.next();
+    const options = try cli.parseArgument(&args);
+    if (options.h) {
+        std.debug.print("{s}", .{helpMessage});
+        return;
+    }
+    var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
+    const allocator = gpa.allocator();
+    var automata: Automata = try Automata.init(allocator, options);
+    defer automata.deinit();
+    try run_automata(&automata, options);
 }

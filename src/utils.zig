@@ -3,6 +3,7 @@ const testing = std.testing;
 const ArrayList = std.ArrayList(u8);
 const Allocator = std.mem.Allocator;
 const rl = @import("raylib");
+const rand = std.crypto.random;
 
 pub fn RuleSet() type {
     return struct {
@@ -15,7 +16,8 @@ pub fn RuleSet() type {
             };
         }
 
-        pub fn initRule(rule: u8) !Self {
+        pub fn initRandom() !Self {
+            const rule: u8 = rand.int(u8);
             var temp: [8]u8 = undefined;
             const range: u8 = 8;
             for (0..range) |i| {
