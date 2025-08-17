@@ -13,9 +13,7 @@ pub fn Grid(comptime T: type) type {
         allocator: Allocator,
 
         pub fn init(allocator: Allocator, rows: usize, cols: usize) !Self {
-            if (rows == 0 or cols == 0) {
-                return error.InvalidDimensions;
-            }
+            if (rows == 0 or cols == 0) return error.InvalidDimensions;
             const data = try allocator.alloc(T, rows * cols);
             @memset(data, 0);
             return Self{ .data = data, .rows = rows, .cols = cols, .allocator = allocator };
